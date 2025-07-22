@@ -7,6 +7,7 @@ import { StyleSheet, Text, TouchableOpacity, View, ScrollView, Image } from 'rea
 import { TextInput } from 'react-native-paper';
 import { ImagePlus } from 'lucide-react-native';
 import { ingredients } from '../data/ingredients';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import { v4 as uuidv4 } from 'uuid';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
@@ -124,14 +125,12 @@ export default function CookingModeScreen() {
     };
 
     // Beim Speichern: Trennen und prüfen
-    const handleSaveIngredient = (index: number) => {
+    const handleSaveIngredient = async (index: number) => {
         const updatedIngredients = [...ingredientsList];
         const input = updatedIngredients[index].input.trim();
-        // Versuche, die letzte Zutat im String zu finden
         let found = null;
         let foundName = "";
         for (const ing of ingredients) {
-            // Suche nach Zutat am Ende des Strings (z.B. "2 EL Butter")
             if (input.toLowerCase().endsWith(ing.name.toLowerCase())) {
                 found = ing;
                 foundName = ing.name;
@@ -139,18 +138,37 @@ export default function CookingModeScreen() {
             }
         }
         if (found) {
-            // Menge = alles vor dem Zutatennamen
             const amount = input.slice(0, input.toLowerCase().lastIndexOf(foundName.toLowerCase())).trim();
             updatedIngredients[index].amount = amount;
             updatedIngredients[index].ingredient = foundName;
             updatedIngredients[index].foundIngredient = found;
             updatedIngredients[index].isEditing = false;
         } else {
-            // Falls keine Zutat erkannt, alles als input lassen
-            updatedIngredients[index].amount = "";
-            updatedIngredients[index].ingredient = "";
-            updatedIngredients[index].foundIngredient = null;
-            updatedIngredients[index].isEditing = true;
+            // Ghost-Bild und Name speichern
+            const ghostImage = require('../assets/ingredientImages/ghost.png');
+            // Versuche, Menge und Name zu trennen (z.B. "2 EL NeueZutat")
+            const match = input.match(/^(.*?)([a-zA-ZäöüÄÖÜß\s]+)$/);
+            let amount = "";
+            let name = input;
+            if (match) {
+                amount = match[1].trim();
+                name = match[2].trim();
+            }
+            updatedIngredients[index].amount = amount;
+            updatedIngredients[index].ingredient = name;
+            updatedIngredients[index].foundIngredient = { id: Date.now(), name, image: ghostImage };
+            updatedIngredients[index].isEditing = false;
+            // AsyncStorage: neue Zutat speichern
+            try {
+                const stored = await AsyncStorage.getItem('customIngredients');
+                let customIngredients = stored ? JSON.parse(stored) : [];
+                if (!customIngredients.find((z: any) => z.name.toLowerCase() === name.toLowerCase())) {
+                    customIngredients.push({ name, image: 'ghost' });
+                    await AsyncStorage.setItem('customIngredients', JSON.stringify(customIngredients));
+                }
+            } catch (e) {
+                console.log('Fehler beim Speichern neuer Zutat:', e);
+            }
         }
         setIngredientsList(updatedIngredients);
     };
@@ -560,6 +578,7 @@ export default function CookingModeScreen() {
                                 )}
                             </View>
                         ))}
+                        
                         {/* Zubereitungsschritte */}
                         <View style={styles.topBarInput}>
                             <Text style={styles.textH2}> Zubereitungsschritte </ Text>
