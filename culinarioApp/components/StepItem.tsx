@@ -1,23 +1,34 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { PreparationStepType } from '../context/RecipeContext';
 
 import StepIngredientItem from './StepIngredientItem';
 
-export default function StepItem() {
+interface StepItemProps {
+  step: PreparationStepType;
+  servings?: number;
+}
+
+export default function StepItem({ step, servings = 1 }: StepItemProps) {
   return (
     <View style={styles.container}>
         <View style={styles.stepNumber}>
-            <Text style={styles.textBody}> 1. Schritt </Text>
+            <Text style={styles.textBody}> {step.stepNumber}. Schritt </Text>
         </View>
 
-        <Text style={styles.textBody}>Erhitze die Butter, Knoblauchzehen, Oregano, Pfeffer, Salz, geräuchertes Paprikapulver sowie in einer großen Pfanne oder einem Topf bei mittlerer Hitze. Koche alles etwa 2 Minuten, bis der Knoblauch duftet. Zerbrösele den Tofu in die Pfanne und brate ihn 5 bis 10 Minuten, bis er gebräunt ist. </Text>
+        <Text style={styles.textBody}>{step.description}</Text>
 
-        <View style={styles.ingredientContainer}>
-            <StepIngredientItem/>
-            <StepIngredientItem/>
-            <StepIngredientItem/>
-            <StepIngredientItem/>
-        </View>
+        {step.ingredients && step.ingredients.length > 0 && (
+          <View style={styles.ingredientContainer}>
+            {step.ingredients.map((ingredient, index) => (
+              <StepIngredientItem 
+                key={`${step.stepNumber}-${index}`} 
+                ingredient={ingredient} 
+                servings={servings} 
+              />
+            ))}
+          </View>
+        )}
     </View>
   );
 }

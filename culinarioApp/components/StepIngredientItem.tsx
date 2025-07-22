@@ -1,11 +1,29 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
+import { StyleSheet, Text, View, Image } from 'react-native';
+import { IngredientType } from '../context/RecipeContext';
 
-export default function StepIngredientItem() {
+interface StepIngredientItemProps {
+  ingredient: IngredientType;
+  servings?: number;
+}
+
+export default function StepIngredientItem({ ingredient, servings = 1 }: StepIngredientItemProps) {
+    // Berechne die angepasste Menge basierend auf der Portionsanzahl
+    const adjustedAmount = ingredient.amount * servings;
+
+    // Funktion zum Rendern des Bildes
+    const getIngredientImage = () => {
+        if (ingredient.image) {
+            return <Image style={styles.image} source={{ uri: ingredient.image }} />;
+        }
+        // Fallback-Bild verwenden
+        return <Image style={styles.image} source={require('../assets/ingredientImages/milkproducts/butter.png')} />;
+    };
+
     return (
         <View style={styles.ingredientItem}>
-            <Image style={styles.image} source={require('../assets/ingredientImages/milkproducts/butter.png')} />
-            <Text style={styles.textBody}> 2EL Butter </Text>
+            {getIngredientImage()}
+            <Text style={styles.textBody}> {adjustedAmount}{ingredient.unit} {ingredient.name} </Text>
         </View>
     );
 }

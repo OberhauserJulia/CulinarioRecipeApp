@@ -1,28 +1,39 @@
 import { StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-//import { HomeStackParamList } from '../components/navigation/StackNavigator';
 import { HomeStackParamList } from '../components/navigation/CombinedNavigator';
+import { RecipeType } from '../context/RecipeContext';
 
 type RecipeItemNavigationProp = StackNavigationProp<HomeStackParamList, 'Recipe'>;
 
-export default function RecipeItem() {
+interface RecipeItemProps {
+  recipe?: RecipeType;
+}
+
+export default function RecipeItem({ recipe }: RecipeItemProps) {
   const navigation = useNavigation<RecipeItemNavigationProp>();
 
+  // Fallback für Demo-Daten wenn kein Rezept übergeben wird
+  const displayName = recipe?.name || "Marry Me Gnocchi";
+  const displayImage = recipe?.image 
+    ? { uri: recipe.image }
+    : require('../assets/recipeImages/marry-me-gnocchi.jpg');
+  const recipeId = recipe?.id || '1';
+
   return (
-    <TouchableOpacity style={styles.container} onPress={() => navigation.navigate('Recipe', { recipeId: '1' })}>
-    <TouchableOpacity style={styles.container} onPress={() => navigation.navigate('Recipe', { recipeId: '1' })}>
+    <TouchableOpacity 
+      style={styles.container} 
+      onPress={() => navigation.navigate('Recipe', { recipeId })}
+    >
       <Image
         style={styles.image}
-        source={require('../assets/recipeImages/marry-me-gnocchi.jpg')}
+        source={displayImage}
       />
       <View style={styles.textContainer}>
         <Text style={styles.text}>
-          Marry Me Gnocchi
-          Marry Me Gnocchi
+          {displayName}
         </Text>
       </View>
-    </TouchableOpacity>
     </TouchableOpacity>
   );
 }

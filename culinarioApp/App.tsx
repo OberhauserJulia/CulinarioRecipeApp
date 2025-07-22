@@ -19,8 +19,12 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <TabNavigator />
-    </NavigationContainer>
+    <RecipeProvider>
+      <IngredientProvider>
+        <NavigationContainer>
+          <TabNavigator />
+        </NavigationContainer>
+      </IngredientProvider>
+    </RecipeProvider>
   );
 }

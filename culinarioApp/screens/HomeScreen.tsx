@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { StatusBar } from 'expo-status-bar';
-import { Text, TouchableOpacity, View, ScrollView } from 'react-native';
+import { Text, TouchableOpacity, View, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { StackNavigationProp } from "@react-navigation/stack";
 import { HomeStackParamList } from "../components/navigation/CombinedNavigator";
+import { RecipeContext } from "../context/RecipeContext";
+import { addDemoRecipes } from "../firebase/demoData";
 
 import { Searchbar } from 'react-native-paper';
 
@@ -17,8 +19,39 @@ type Props = {
 };
 
 export default function HomeScreen({ navigation }: Props) {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = React.useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>("Alle");
+  const [searchQuery, setSearchQuery] = useState('');
+  const { recipes, loading, error, loadRecipes } = useContext(RecipeContext);
+
+  // Filtere Rezepte basierend auf Kategorie und Suchbegriff
+  const filteredRecipes = recipes.filter(recipe => {
+    const matchesCategory = selectedCategory === "Alle" || recipe.category === selectedCategory;
+    const matchesSearch = recipe.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const handleAddDemoRecipes = async () => {
+    try {
+      await addDemoRecipes();
+      Alert.alert("Erfolg", "Demo-Rezepte wurden hinzugefügt!");
+      loadRecipes(); // Rezepte neu laden
+    } catch (error) {
+      Alert.alert("Fehler", "Fehler beim Hinzufügen der Demo-Rezepte: " + error);
+    }
+  };
+
+  useEffect(() => {
+    loadRecipes();
+  }, [loadRecipes]);
+
+  if (loading && recipes.length === 0) {
+    return (
+      <View className="flex-1 h-full justify-center items-center bg-darkbackground">
+        <ActivityIndicator size="large" color="#66A182" />
+        <Text className="text-white mt-4">Lade Rezepte...</Text>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 h-full flex-col gap-6 bg-darkbackground p-6 pt-[68px]">
@@ -64,13 +97,48 @@ export default function HomeScreen({ navigation }: Props) {
         </ScrollView>
       </View>
 
+      {/* Temporärer Demo-Button (zum Testen) */}
+      {filteredRecipes.length === 0 && !loading && (
+        <View className="items-center mb-4">
+          <TouchableOpacity
+            onPress={handleAddDemoRecipes}
+            className="bg-[#66A182] px-6 py-3 rounded-lg"
+          >
+            <Text className="text-white font-medium text-center">
+              Demo-Rezepte hinzufügen
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Recipe List */}
       <ScrollView style={{ flex: 1, flexGrow: 1 }} contentContainerStyle={{ flexDirection: 'column', gap: 24, paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
-        <RecipeItem />
-        <RecipeItem />
-        <RecipeItem />
-        <RecipeItem />
-        <RecipeItem />
+        {error && (
+          <View className="bg-red-500/20 p-4 rounded-lg mb-4">
+            <Text className="text-red-300 text-center">{error}</Text>
+          </View>
+        )}
+        
+        {filteredRecipes.length === 0 ? (
+          <View className="flex-1 justify-center items-center py-12">
+            <Text className="text-white text-lg text-center">
+              {searchQuery ? 'Keine Rezepte gefunden' : 'Keine Rezepte vorhanden'}
+            </Text>
+            <Text className="text-gray-400 text-center mt-2">
+              {searchQuery ? 'Versuche einen anderen Suchbegriff' : 'Füge dein erstes Rezept hinzu!'}
+            </Text>
+          </View>
+        ) : (
+          filteredRecipes.map((recipe) => (
+            <RecipeItem key={recipe.id} recipe={recipe} />
+          ))
+        )}
+        
+        {loading && recipes.length > 0 && (
+          <View className="py-4">
+            <ActivityIndicator size="small" color="#66A182" />
+          </View>
+        )}
       </ScrollView>
     </View>
   );

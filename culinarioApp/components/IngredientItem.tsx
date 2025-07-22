@@ -1,17 +1,34 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
+import { StyleSheet, Text, View, Image } from 'react-native';
+import { IngredientType } from '../context/RecipeContext';
 
-export default function IngredientItem() {
+interface IngredientItemProps {
+  ingredient: IngredientType;
+  servings?: number;
+}
+
+export default function IngredientItem({ ingredient, servings = 1 }: IngredientItemProps) {
+  // Berechne die angepasste Menge basierend auf der Portionsanzahl
+  const adjustedAmount = ingredient.amount * servings;
+
+  // Funktion zum Rendern des Bildes
+  const getIngredientImage = () => {
+    if (ingredient.image) {
+      return <Image style={styles.image} source={{ uri: ingredient.image }} />;
+    }
+    // Fallback-Bild verwenden
+    return <Image style={styles.image} source={require('../assets/ingredientImages/milkproducts/butter.png')} />;
+  };
+
   return (
     <View style={styles.container}>
-
         <View style={styles.ingedientContainer}>
             <View style={styles.imageContainer}>
-                <Image style={styles.image} source={require('../assets/ingredientImages/milkproducts/butter.png')} />
+                {getIngredientImage()}
             </View>
-            <Text style={styles.textBody}> Butter </Text>
+            <Text style={styles.textBody}> {ingredient.name} </Text>
         </View>
-        <Text style={styles.textBody}> 2 EL </Text>
+        <Text style={styles.textBody}> {adjustedAmount} {ingredient.unit} </Text>
     </View>
   );
 }
