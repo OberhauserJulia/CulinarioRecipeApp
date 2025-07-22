@@ -7,28 +7,29 @@ interface BigButtonProps {
   back?: boolean;
   saveIngredients?: boolean;
   addArticle?: boolean;
+  onPress?: () => void;
 }
 
-export default function BigButton({ cookingMode, forward, back, saveIngredients, addArticle }: BigButtonProps) {
+export default function BigButton({ cookingMode, forward, back, saveIngredients, addArticle, onPress }: BigButtonProps) {
   return (
     <>
       {cookingMode && (
-        <View style={[styles.button, { width: '100%' }]}>
+        <TouchableOpacity style={[styles.button, { width: '100%' }]} onPress={onPress} activeOpacity={0.8}>
           <Image source={require('../assets/icons/cook.png')} />
           <Text style={styles.textH2}>Kochmodus </Text>
-        </View>
+        </TouchableOpacity>
       )}
 
       {forward && (
-        <View style={[styles.button, { flex: 1 }]}>
+        <TouchableOpacity style={[styles.button, { flex: 1 }]} onPress={onPress} activeOpacity={0.8}>
           <Image source={require('../assets/icons/cook.png')} />
-        </View>
+        </TouchableOpacity>
       )}
 
       {saveIngredients && (
-        <View style={[styles.button, { width: '100%' }]}>
+        <TouchableOpacity style={[styles.button, { width: '100%' }]} onPress={onPress} activeOpacity={0.8}>
           <Text style={styles.textH2}> Zutaten speichern </Text>
-        </View>
+        </TouchableOpacity>
       )}
     </>
   );

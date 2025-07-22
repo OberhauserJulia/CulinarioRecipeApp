@@ -1,10 +1,9 @@
 import React, { useState, useContext, useEffect } from "react";
 import { StatusBar } from 'expo-status-bar';
-import { Text, TouchableOpacity, View, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { Text, View, ScrollView, ActivityIndicator } from 'react-native';
 import { StackNavigationProp } from "@react-navigation/stack";
 import { HomeStackParamList } from "../components/navigation/CombinedNavigator";
 import { RecipeContext } from "../context/RecipeContext";
-import { addDemoRecipes } from "../firebase/demoData";
 
 import { Searchbar } from 'react-native-paper';
 
@@ -29,16 +28,6 @@ export default function HomeScreen({ navigation }: Props) {
     const matchesSearch = recipe.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
-
-  const handleAddDemoRecipes = async () => {
-    try {
-      await addDemoRecipes();
-      Alert.alert("Erfolg", "Demo-Rezepte wurden hinzugefügt!");
-      loadRecipes(); // Rezepte neu laden
-    } catch (error) {
-      Alert.alert("Fehler", "Fehler beim Hinzufügen der Demo-Rezepte: " + error);
-    }
-  };
 
   useEffect(() => {
     loadRecipes();
@@ -96,20 +85,6 @@ export default function HomeScreen({ navigation }: Props) {
           />
         </ScrollView>
       </View>
-
-      {/* Temporärer Demo-Button (zum Testen) */}
-      {filteredRecipes.length === 0 && !loading && (
-        <View className="items-center mb-4">
-          <TouchableOpacity
-            onPress={handleAddDemoRecipes}
-            className="bg-[#66A182] px-6 py-3 rounded-lg"
-          >
-            <Text className="text-white font-medium text-center">
-              Demo-Rezepte hinzufügen
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
       {/* Recipe List */}
       <ScrollView style={{ flex: 1, flexGrow: 1 }} contentContainerStyle={{ flexDirection: 'column', gap: 24, paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
