@@ -14,13 +14,13 @@ interface Ingredient {
 interface InputFieldProps {
   stepNumber: number;
   placeholder: string;
-  inputValue?: string;
-  onChangeText?: (text: string) => void;
+  description: string;
+  onDescriptionChange: (text: string) => void;
   ingredients: Ingredient[];
   onIngredientsChange?: (selected: Ingredient[]) => void;
 }
 
-export default function InputFieldSteps({ stepNumber, placeholder, inputValue, onChangeText, ingredients, onIngredientsChange }: InputFieldProps) {
+export default function InputFieldSteps({ stepNumber, placeholder, description, onDescriptionChange, ingredients, onIngredientsChange }: InputFieldProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedIngredients, setSelectedIngredients] = useState<Ingredient[]>([]);
 
@@ -47,8 +47,8 @@ export default function InputFieldSteps({ stepNumber, placeholder, inputValue, o
           className="bg-lightbackground rounded-[15px] p-[10px] flex-1 w-full"
           placeholder={placeholder}
           placeholderTextColor="#FFFFFF80"
-          value={inputValue}
-          onChangeText={onChangeText}
+          value={description}
+          onChangeText={onDescriptionChange}
           multiline={true}
           style={{
             minHeight: 112,

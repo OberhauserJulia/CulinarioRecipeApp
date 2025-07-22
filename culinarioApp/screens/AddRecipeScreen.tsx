@@ -1,24 +1,28 @@
 import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { StyleSheet, Text, TouchableOpacity, View, ScrollView, Image } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { ImagePlus } from 'lucide-react-native';
 import { ingredients } from '../data/ingredients';
+import * as FileSystem from 'expo-file-system';
+import { v4 as uuidv4 } from 'uuid';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { List } from 'react-native-paper';
 
 // Imports Compponents
+import { RecipeContext } from '../context/RecipeContext';
 import SmallButton from '../components/SmallButton';
-
 import InputFieldSteps from '../components/InputFieldSteps';
 
 
 
 export default function CookingModeScreen() {
-    const [image, setImage] = useState<string | null>(null);
+    const { addRecipe } = useContext(RecipeContext);
+    const [image, setImage] = useState<string | null>(null); // Für die Anzeige (Picker-URI)
+    const [savedImageUri, setSavedImageUri] = useState<string | null>(null); // Für die Speicherung (kopierte URI)
     const [steps, setSteps] = useState<{ text: string, stepNumber: number }[]>([{ text: "", stepNumber: 1 }]);
     const [ingredientsList, setIngredientsList] = useState<{
         input: string,
@@ -38,7 +42,6 @@ export default function CookingModeScreen() {
     const [source, setSource] = useState("");
 
     const [expanded, setExpanded] = React.useState(true);
-    const handlePress = () => setExpanded(!expanded);
 
     // Kategorie Dropdown State
     const [showDropdown, setShowDropdown] = useState(false);
@@ -71,17 +74,42 @@ export default function CookingModeScreen() {
         }, [])
     );
 
+    // Bild auswählen und lokal speichern
     const pickImage = async () => {
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: 'images',
+            allowsEditing: true,
             aspect: [16, 9],
             quality: 1,
         });
 
         console.log(result);
 
-        if (!result.canceled) {
-            setImage(result.assets[0].uri);
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+            const localUri = result.assets[0].uri;
+            setImage(localUri); // Anzeige sofort
+
+            // Bild lokal kopieren und URI speichern
+            try {
+                const imageName = `${Date.now()}.jpg`;
+                const destDir = FileSystem.documentDirectory + 'images/';
+                const destUri = destDir + imageName;
+
+                // Verzeichnis erstellen, falls nötig
+                const dirInfo = await FileSystem.getInfoAsync(destDir);
+                if (!dirInfo.exists) {
+                    await FileSystem.makeDirectoryAsync(destDir, { intermediates: true });
+                }
+
+                await FileSystem.copyAsync({
+                    from: localUri,
+                    to: destUri,
+                });
+                setSavedImageUri(destUri); // Für Speicherung im Rezept
+            } catch (err) {
+                console.log('Fehler beim Kopieren des Bildes:', err);
+                setSavedImageUri(null);
+            }
         }
     };
 
@@ -197,6 +225,99 @@ export default function CookingModeScreen() {
         });
     }
 
+    // Hilfsfunktion: Zutaten für das Rezept-Objekt aufbereiten
+    function buildIngredientsForRecipe() {
+        // ingredientsList: [{ amount, ingredient, foundIngredient }]
+        return ingredientsList
+            .filter(ing => ing.amount && ing.ingredient && ing.foundIngredient)
+            .map(ing => {
+                // Versuche Menge und Einheit zu trennen
+                const match = ing.amount.match(/([\d,.]+)/);
+                const value = match ? parseFloat(match[1].replace(',', '.')) : 0;
+                const unit = ing.amount.replace(/^[\d,.]+\s*/, '');
+                return {
+                    name: ing.ingredient,
+                    image: ing.foundIngredient?.image || null,
+                    amount: value,
+                    unit: unit,
+                };
+            });
+    }
+
+    // Hilfsfunktion: Schritte für das Rezept-Objekt aufbereiten
+    function buildPreparationSteps() {
+        return steps.map((step, idx) => ({
+            stepNumber: step.stepNumber,
+            description: step.text,
+            ingredients: (stepIngredients[idx] || []).map(ing => {
+                // Versuche Menge und Einheit zu trennen
+                const match = ing.amount.match(/([\d,.]+)/);
+                const value = match ? parseFloat(match[1].replace(',', '.')) : 0;
+                const unit = ing.amount.replace(/^[\d,.]+\s*/, '');
+                // Bild aus globaler Liste suchen
+                const found = ingredients.find(i => i.name.toLowerCase() === ing.name.toLowerCase());
+                return {
+                    name: ing.name,
+                    image: found ? found.image : null,
+                    amount: value,
+                    unit: unit,
+                };
+            })
+        }));
+    }
+
+    // Rezept speichern
+    async function handleSaveRecipe() {
+        if (!recipeName.trim()) {
+            alert('Bitte gib einen Rezeptnamen ein.');
+            return;
+        }
+        if (buildIngredientsForRecipe().length === 0) {
+            alert('Bitte gib mindestens eine Zutat ein.');
+            return;
+        }
+        let imageUrl = '';
+        try {
+            if (savedImageUri) {
+                imageUrl = savedImageUri;
+            } else if (image) {
+                imageUrl = image;
+            } else {
+                imageUrl = require('../assets/recipeImages/marry-me-gnocchi.jpg');
+            }
+        } catch (error) {
+            console.log('Fehler beim lokalen Speichern des Bildes:', error);
+            alert('Fehler beim lokalen Speichern des Bildes.');
+            return;
+        }
+        try {
+            await addRecipe({
+                name: recipeName,
+                image: imageUrl,
+                category: category,
+                ovensettings: ovenSetting,
+                source: source,
+                ingredients: buildIngredientsForRecipe(),
+                preparationSteps: buildPreparationSteps(),
+            });
+            console.log('Rezept gespeichert:', recipeName, imageUrl);
+            alert('Rezept erfolgreich gespeichert!');
+            // Optional: Felder zurücksetzen
+            setImage(null);
+            setSavedImageUri(null);
+            setSteps([{ text: '', stepNumber: 1 }]);
+            setIngredientsList([{ input: '', amount: '', ingredient: '', foundIngredient: null, isEditing: true }]);
+            setStepIngredients([[]]);
+            setRecipeName('');
+            setCategory('');
+            setMiscAmount('');
+            setOvenSetting('');
+            setSource('');
+        } catch {
+            alert('Fehler beim Speichern des Rezepts.');
+        }
+    }
+
     return (
         <KeyboardAwareScrollView>
             <View style={styles.container}>
@@ -204,7 +325,7 @@ export default function CookingModeScreen() {
                 {/* Top Bar */}
                 <View className="flex-row justify-between items-center pb-6">
                     <Text style={styles.textH1}> Rezept hinzufügen </Text>
-                    <SmallButton save={true} />
+                    <SmallButton save={true} onPress={handleSaveRecipe} />
                 </View>
                 <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
                     <View style={styles.inputContainer}>
@@ -449,6 +570,14 @@ export default function CookingModeScreen() {
                                 key={index}
                                 stepNumber={step.stepNumber}
                                 placeholder="Zubereitungsschritt beschreiben"
+                                description={step.text}
+                                onDescriptionChange={text => {
+                                    setSteps(prev => {
+                                        const copy = [...prev];
+                                        copy[index] = { ...copy[index], text };
+                                        return copy;
+                                    });
+                                }}
                                 ingredients={getAvailableIngredientsForStep(index)}
                                 onIngredientsChange={selected => handleStepIngredientsChange(index, selected)}
                             />

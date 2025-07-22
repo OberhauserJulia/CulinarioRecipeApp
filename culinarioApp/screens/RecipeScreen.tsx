@@ -46,6 +46,7 @@ export default function RecipeScreen({ route }: Props) {
         setError(null);
         const fetchedRecipe = await getRecipeById(recipeId);
         setRecipe(fetchedRecipe);
+        console.log('Geladenes Rezeptbild:', fetchedRecipe?.image);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Fehler beim Laden des Rezepts');
       } finally {
