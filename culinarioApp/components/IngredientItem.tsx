@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, Image } from 'react-native';
 import { IngredientType } from '../context/RecipeContext';
+import { ingredients } from '../data/ingredients';
 
 interface IngredientItemProps {
   ingredient: IngredientType;
@@ -13,9 +14,20 @@ export default function IngredientItem({ ingredient, servings = 1 }: IngredientI
 
   // Funktion zum Rendern des Bildes
   const getIngredientImage = () => {
+    // Zuerst versuchen, das Bild basierend auf dem Namen aus der ingredients.ts zu finden
+    const foundIngredient = ingredients.find(ing => 
+      ing.name.toLowerCase() === ingredient.name.toLowerCase()
+    );
+    
+    if (foundIngredient) {
+      return <Image style={styles.image} source={foundIngredient.image} />;
+    }
+    
+    // Falls in ingredient.image eine URI vorhanden ist, diese verwenden
     if (ingredient.image) {
       return <Image style={styles.image} source={{ uri: ingredient.image }} />;
     }
+    
     // Fallback-Bild verwenden
     return <Image style={styles.image} source={require('../assets/ingredientImages/milkproducts/butter.png')} />;
   };
