@@ -8,6 +8,7 @@ import { TextInput } from 'react-native-paper';
 import { ImagePlus } from 'lucide-react-native';
 import { ingredients } from '../data/ingredients';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { List } from 'react-native-paper';
 
 // Imports Compponents
 import SmallButton from '../components/SmallButton';
@@ -15,8 +16,8 @@ import SmallButton from '../components/SmallButton';
 import InputFieldSteps from '../components/InputFieldSteps';
 
 
-export default function CookingModeScreen() {
 
+export default function CookingModeScreen() {
     const [image, setImage] = useState<string | null>(null);
     const [steps, setSteps] = useState<{ text: string, stepNumber: number }[]>([{ text: "", stepNumber: 1 }]);
     const [ingredientsList, setIngredientsList] = useState<{
@@ -35,6 +36,25 @@ export default function CookingModeScreen() {
     const [miscAmount, setMiscAmount] = useState("");
     const [ovenSetting, setOvenSetting] = useState("");
     const [source, setSource] = useState("");
+
+    const [expanded, setExpanded] = React.useState(true);
+    const handlePress = () => setExpanded(!expanded);
+
+    // Kategorie Dropdown State
+    const [showDropdown, setShowDropdown] = useState(false);
+    const [showCategoryInput, setShowCategoryInput] = useState(false);
+    const [newCategory, setNewCategory] = useState("");
+    const [categoryOptions, setCategoryOptions] = useState(["Vorspeise", "Hauptspeise", "Nachspeise"]);
+
+    function handleAddCategory() {
+        if (newCategory.trim() && !categoryOptions.includes(newCategory.trim())) {
+            setCategoryOptions([...categoryOptions, newCategory.trim()]);
+            setCategory(newCategory.trim());
+        }
+        setShowCategoryInput(false);
+        setShowDropdown(false);
+        setNewCategory("");
+    }
 
     // Alle Eingaben zurücksetzen, wenn der Screen neu geladen/geöffnet wird
     useFocusEffect(
@@ -223,30 +243,83 @@ export default function CookingModeScreen() {
                                 }}
                             />
                         </View>
+                        
                         {/* Zusätzlich */}
                         <View className="flex-col gap-3">
                             <Text style={styles.textH2}> Sonstiges </Text>
-                            <TextInput
-                                placeholder='Kategorie'
-                                underlineColor="transparent"
-                                activeUnderlineColor="transparent"
-                                textColor="#FFFFFF"
-                                placeholderTextColor="#FFFFFF80"
-                                value={category}
-                                onChangeText={setCategory}
-                                style={{
-                                    backgroundColor: '#222222',
-                                    color: '#FFFFFF',
-                                    borderTopLeftRadius: 15,
-                                    borderTopRightRadius: 15,
-                                    borderBottomRightRadius: 15,
-                                    borderBottomLeftRadius: 15,
-                                    fontFamily: 'Roboto-Medium',
-                                    fontSize: 16,
-                                    lineHeight: 25,
-                                    flex: 1,
-                                }}
-                            />
+                            
+                            {/* Kategorie Dropdown */}
+                            <View className="w-full">
+                                <View>
+                                    {showCategoryInput ? (
+                                        <View style={{ flexDirection: 'row', height: 55, alignItems: 'center', backgroundColor: '#222222', borderRadius: 15 }}>
+                                            <TextInput
+                                                placeholder='Neue Kategorie eingeben'
+                                                underlineColor="transparent"
+                                                activeUnderlineColor="transparent"
+                                                textColor="#FFFFFF"
+                                                placeholderTextColor="#FFFFFF80"
+                                                value={newCategory}
+                                                onChangeText={setNewCategory}
+                                                style={{
+                                                    backgroundColor: 'transparent',
+                                                    color: '#FFFFFF',
+                                                    fontFamily: 'Roboto-Medium',
+                                                    fontSize: 16,
+                                                    flex: 1,
+                                                    lineHeight: 25,
+                                                }}
+                                            />
+                                            <TouchableOpacity onPress={handleAddCategory} style={{ marginLeft: 8 }}>
+                                                <Text style={{ color: '#66A182', fontWeight: 'bold', fontSize: 18 }}>✓</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    ) : (
+                                        <TouchableOpacity
+                                            onPress={() => setShowDropdown(!showDropdown)}
+                                            style={{
+                                                backgroundColor: '#222222',
+                                                borderRadius: 15,
+                                                padding: 12,
+                                                flexDirection: 'row',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                            }}
+                                        >
+                                            <Text style={{ color: category ? '#FFFFFF' : '#FFFFFF80', fontFamily: 'Roboto-Medium', fontSize: 16 }}>
+                                                {category || 'Kategorie auswählen'}
+                                            </Text>
+                                            <Text style={{ color: '#66A182', fontSize: 18 }}>{showDropdown ? '▲' : '▼'}</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                    {showDropdown && !showCategoryInput && (
+                                        <View style={{ backgroundColor: '#222222', borderRadius: 15, marginTop: 4, overflow: 'hidden' }}>
+                                            <TouchableOpacity
+                                                onPress={() => {
+                                                    setShowDropdown(false);
+                                                    setShowCategoryInput(true);
+                                                }}
+                                                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#333' }}
+                                            >
+                                                <Text style={{ color: '#66A182', fontFamily: 'Roboto-Medium', fontSize: 16 }}>+ Kategorie hinzufügen</Text>
+                                            </TouchableOpacity>
+                                            {categoryOptions.map((option, idx) => (
+                                                <TouchableOpacity
+                                                    key={option}
+                                                    onPress={() => {
+                                                        setCategory(option);
+                                                        setShowDropdown(false);
+                                                    }}
+                                                    style={{ padding: 12, borderBottomWidth: idx < categoryOptions.length - 1 ? 1 : 0, borderBottomColor: '#333' }}
+                                                >
+                                                    <Text style={{ color: '#FFFFFF', fontFamily: 'Roboto-Medium', fontSize: 16 }}>{option}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
+                            
                             <TextInput
                                 placeholder='Menge'
                                 underlineColor="transparent"
@@ -436,11 +509,11 @@ const styles = StyleSheet.create({
     },
 
     text: {
-    color: '#FFFFFF',
-    fontFamily: 'Inter',
-    fontSize: 16,
-    fontWeight: 'medium',
-    textAlign: 'center',
+        color: '#FFFFFF',
+        fontFamily: 'Inter',
+        fontSize: 16,
+        fontWeight: 'medium',
+        textAlign: 'center',
     },
 
     textH1: {
